@@ -89,6 +89,43 @@ The API includes several optimizations:
 - Efficient subscription status tracking
 - Caching strategies for frequently accessed data
 
+### Subscription History Optimization Decisions
+
+The subscription history endpoints have been specifically optimized for performance and scalability:
+
+#### 1. Query Optimization
+- Implemented single-query approach using JOINs instead of multiple separate queries
+- Used `contains_eager` for subscription relationships to prevent N+1 query problems
+- Leveraged SQLAlchemy's `joinedload` for efficient eager loading of related data
+- Optimized query planning through strategic JOIN ordering
+
+#### 2. Database Indexing Strategy
+- Created composite indexes for common query patterns:
+  ```sql
+  -- For single subscription history queries
+  CREATE INDEX idx_subscription_history_sub_date 
+  ON subscription_history (subscription_id, changed_at);
+  
+  -- For user's subscription history queries
+  CREATE INDEX idx_subscription_history_user_sub_date 
+  ON subscription_history (user_id, subscription_id, changed_at);
+  
+  -- For filtering by change type
+  CREATE INDEX idx_subscription_history_change_type 
+  ON subscription_history (change_type);
+  ```
+
+#### 3. Relationship Loading Optimization
+- Set default eager loading with `lazy='joined'` for frequently accessed relationships
+- Configured backref relationships for bidirectional access
+- Optimized lazy loading strategies based on access patterns:
+  ```python
+  subscription = db.relationship('Subscription', backref='history', lazy='joined')
+  user = db.relationship('User', lazy='joined')
+  old_plan = db.relationship('SubscriptionPlan', lazy='joined')
+  new_plan = db.relationship('SubscriptionPlan', lazy='joined')
+  ```
+
 ## Testing
 
 Run tests using pytest:(not implemented)
