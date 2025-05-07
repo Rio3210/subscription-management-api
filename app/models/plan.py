@@ -11,5 +11,4 @@ class SubscriptionPlan(db.Model):
     features = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     subscriptions = db.relationship('Subscription', back_populates='plan', lazy='dynamic') 

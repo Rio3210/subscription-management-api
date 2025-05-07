@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from app.models import Subscription, SubscriptionPlan, User
 from app.core.database import db
-from sqlalchemy import text, cast, DateTime
 
 class SubscriptionService:
     def get_user_subscriptions(self, user_id):
@@ -47,7 +46,7 @@ class SubscriptionService:
         db.session.commit()
         return subscription
 
-    def update_subscription(self, subscription_id, user_id, status=None):
+    def update_subscription(self, subscription_id, user_id, status=None, plan_id=None):
         subscription = Subscription.query.get(subscription_id)
 
         if not subscription or subscription.user_id != int(user_id):
@@ -55,7 +54,17 @@ class SubscriptionService:
 
         if status:
             subscription.status = status
-            db.session.commit()
+            
+        if plan_id:
+            plan = SubscriptionPlan.query.get(plan_id)
+            if not plan:
+                raise ValueError("Invalid subscription plan")
+                
+            old_plan_id = subscription.plan_id
+            subscription.plan_id = plan_id
+            subscription.updated_at = datetime.utcnow()       
+            
+        db.session.commit()
         
         return subscription
 

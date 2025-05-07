@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.core.database import db
-from datetime import datetime
+
 
 class AuthService:
     def __init__(self):
