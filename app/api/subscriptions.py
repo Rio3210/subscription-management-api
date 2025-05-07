@@ -5,7 +5,6 @@ from app.services.subscription_service import SubscriptionService
 from app.schemas.subscription_schema import SubscriptionCreateSchema, SubscriptionResponseSchema
 from marshmallow import ValidationError
 from app.api.plans import plan_model
-from app.core.database import db
 from app.models.subscription import SubscriptionStatus
 
 
@@ -85,7 +84,7 @@ class SubscriptionByStatus(Resource):
             subscriptions_ns.abort(400, error=str(err))
 
 @subscriptions_ns.route('/<int:subscription_id>')
-@subscriptions_ns.param('subscription_id', 'The subscription identifier')
+@subscriptions_ns.param('subscription_id', 'Subscription id')
 @subscriptions_ns.doc(security='Bearer Auth')
 class Subscription(Resource):
     @subscriptions_ns.doc('get_subscription')
@@ -107,7 +106,8 @@ class Subscription(Resource):
             subscription = subscription_service.update_subscription(
                 subscription_id=subscription_id,
                 user_id=current_user_id,
-                status=request.json.get('status')
+                status=request.json.get('status'),
+                plan_id=request.json.get('plan_id')
             )
             return subscription_schema.dump(subscription)
         except ValueError as err:

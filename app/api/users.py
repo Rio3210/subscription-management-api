@@ -2,7 +2,6 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource, fields
 from app.services.user_service import UserService
-from marshmallow import ValidationError
 
 users_bp = Blueprint('users', __name__)
 users_ns = Namespace('users', description='User operations', security='Bearer Auth')

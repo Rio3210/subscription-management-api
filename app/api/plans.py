@@ -30,7 +30,6 @@ class PlanList(Resource):
     @plans_ns.marshal_list_with(plan_model)
     @jwt_required()
     def get(self):
-        """List all subscription plans"""
         plans = plan_service.get_all_plans()
         return [plan_schema.dump(plan) for plan in plans]
     
@@ -40,7 +39,6 @@ class PlanList(Resource):
     @plans_ns.marshal_with(plan_model, code=201)
     @jwt_required()
     def post(self):
-        """Only allowed for admin"""
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
         if not user or not user.is_admin:
