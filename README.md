@@ -2,6 +2,12 @@
 
 A RESTful API for managing user subscriptions with optimized database queries and performance considerations.
 
+## API Overview
+
+![API Endpoints](docs/api-endpoints.png)
+
+The API provides comprehensive endpoints for managing subscriptions, including user authentication, plan management, and subscription operations.
+
 ## Features
 
 - User registration and authentication
