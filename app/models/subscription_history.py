@@ -15,11 +15,13 @@ class SubscriptionHistory(db.Model):
     changed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     
 
-    subscription = db.relationship('Subscription', backref='history')
-    user = db.relationship('User')
-    old_plan = db.relationship('SubscriptionPlan', foreign_keys=[old_plan_id])
-    new_plan = db.relationship('SubscriptionPlan', foreign_keys=[new_plan_id])
+    subscription = db.relationship('Subscription', backref='history', lazy='joined')
+    user = db.relationship('User', lazy='joined')
+    old_plan = db.relationship('SubscriptionPlan', foreign_keys=[old_plan_id], lazy='joined')
+    new_plan = db.relationship('SubscriptionPlan', foreign_keys=[new_plan_id], lazy='joined')
     
     __table_args__ = (
-        db.Index('idx_subscription_history_user_date', 'user_id', 'changed_at'),
+        db.Index('idx_subscription_history_sub_date', 'subscription_id', 'changed_at'),
+        db.Index('idx_subscription_history_user_sub_date', 'user_id', 'subscription_id', 'changed_at'),
+        db.Index('idx_subscription_history_change_type', 'change_type'),
     ) 

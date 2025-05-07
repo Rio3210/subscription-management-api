@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from app.models import Subscription, SubscriptionPlan, User, SubscriptionHistory
 from app.core.database import db
-from sqlalchemy import desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy import desc, and_
+from sqlalchemy.orm import joinedload, contains_eager
+from typing import Dict, List
+from itertools import groupby
 
 class SubscriptionService:
     def get_user_subscriptions(self, user_id):
@@ -117,45 +119,41 @@ class SubscriptionService:
         subscription.status = 'cancelled'
         db.session.commit()
 
-    def get_subscription_history_by_id(self, subscription_id):
+    def get_subscription_history_by_id(self, subscription_id: int) -> List[SubscriptionHistory]:
         return (
             SubscriptionHistory.query
-            .filter_by(subscription_id=subscription_id)
+            .join(SubscriptionHistory.subscription)
+            .options(
+                contains_eager(SubscriptionHistory.subscription),
+                joinedload(SubscriptionHistory.old_plan),
+                joinedload(SubscriptionHistory.new_plan)
+            )
+            .filter(SubscriptionHistory.subscription_id == subscription_id)
             .order_by(desc(SubscriptionHistory.changed_at))
+            .all()
+        )
+
+    def get_all_user_subscription_history(self, user_id: int) -> Dict[int, List[SubscriptionHistory]]:
+        history_entries = (
+            SubscriptionHistory.query
+            .join(Subscription, and_(
+                Subscription.id == SubscriptionHistory.subscription_id,
+                Subscription.user_id == user_id
+            ))
             .options(
                 joinedload(SubscriptionHistory.old_plan),
                 joinedload(SubscriptionHistory.new_plan),
                 joinedload(SubscriptionHistory.subscription)
             )
-            .all()
-        )
-
-    def get_all_user_subscription_history(self, user_id):
-        user_subscriptions = Subscription.query.filter_by(user_id=user_id).all()
-        subscription_ids = [sub.id for sub in user_subscriptions]
-        
-        if not subscription_ids:
-            return {}
-
-        history_entries = (
-            SubscriptionHistory.query
-            .filter(SubscriptionHistory.subscription_id.in_(subscription_ids))
             .order_by(
                 SubscriptionHistory.subscription_id,
                 desc(SubscriptionHistory.changed_at)
             )
-            .options(
-                joinedload(SubscriptionHistory.old_plan),
-                joinedload(SubscriptionHistory.new_plan),
-                joinedload(SubscriptionHistory.subscription)
-            )
             .all()
         )
         
-        grouped_history = {}
-        for entry in history_entries:
-            if entry.subscription_id not in grouped_history:
-                grouped_history[entry.subscription_id] = []
-            grouped_history[entry.subscription_id].append(entry)
-            
-        return grouped_history 
+        return {
+            subscription_id: list(entries)
+            for subscription_id, entries in 
+            groupby(history_entries, key=lambda x: x.subscription_id)
+        } 
