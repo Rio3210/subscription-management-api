@@ -2,10 +2,16 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from app.services.subscription_service import SubscriptionService
-from app.schemas.subscription_schema import SubscriptionCreateSchema, SubscriptionResponseSchema
+from app.schemas.subscription_schema import (
+    SubscriptionCreateSchema, 
+    SubscriptionResponseSchema, 
+    SubscriptionHistoryResponseSchema,
+    SubscriptionHistoryGroupedResponseSchema
+)
 from marshmallow import ValidationError
 from app.api.plans import plan_model
 from app.models.subscription import SubscriptionStatus
+from itertools import groupby
 
 
 subscriptions_bp = Blueprint('subscriptions', __name__)
@@ -122,4 +128,47 @@ class Subscription(Resource):
             subscription_service.cancel_subscription(subscription_id, current_user_id)
             return {'message': 'Subscription cancelled successfully'}
         except ValueError as err:
-            subscriptions_ns.abort(404, error=str(err)) 
+            subscriptions_ns.abort(404, error=str(err))
+
+@subscriptions_ns.route('/history')
+@subscriptions_ns.doc(security='Bearer Auth')
+class SubscriptionHistoryList(Resource):
+    @jwt_required()
+    @subscriptions_ns.doc('get_all_user_subscription_history')
+    def get(self):
+        current_user_id = get_jwt_identity()
+        service = SubscriptionService()
+        # Get pre-grouped history entries
+        grouped_history = service.get_all_user_subscription_history(user_id=current_user_id)
+        
+        if not grouped_history:
+            return {'message': 'No subscription history found'}, 404
+
+        # Serialize each group of entries
+        serialized_history = {
+            str(sub_id): SubscriptionHistoryResponseSchema(many=True).dump(entries)
+            for sub_id, entries in grouped_history.items()
+        }
+        
+        return {'subscriptions': serialized_history}
+
+@subscriptions_ns.route('/history/<int:subscription_id>')
+@subscriptions_ns.doc(security='Bearer Auth')
+@subscriptions_ns.param('subscription_id', 'The subscription ID')
+class SubscriptionHistoryDetail(Resource):
+    @jwt_required()
+    @subscriptions_ns.doc('get_subscription_history')
+    def get(self, subscription_id):
+        current_user_id = get_jwt_identity()
+        service = SubscriptionService()
+
+        subscription = service.get_subscription_by_id(subscription_id)
+        if not subscription or subscription.user_id != int(current_user_id):
+            return {'message': 'Subscription not found'}, 404
+        
+        history_entries = service.get_subscription_history_by_id(subscription_id)
+        
+        if not history_entries:
+            return {'message': 'No history found for this subscription'}, 404
+            
+        return SubscriptionHistoryResponseSchema(many=True).dump(history_entries) 

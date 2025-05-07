@@ -8,6 +8,6 @@ load_dotenv()
 # Get the environment from FLASK_ENV, default to development
 env = os.getenv('FLASK_ENV', 'development')
 app = create_app(env)
- 
+
 if __name__ == '__main__':
     app.run(debug=True) 
