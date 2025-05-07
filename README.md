@@ -24,6 +24,10 @@ docker build -t subscription-api .
 docker run -p 5000:5000 subscription-api
 ```
 
+3. Access the API:
+   - The API will be available at `http://localhost:5000`
+   - Use the Swagger documentation at `http://localhost:5000/api/docs`
+
 ### Local Development
 
 1. Create a virtual environment:
